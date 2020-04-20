@@ -1,0 +1,42 @@
+version: '3'
+services:
+  crawler_jupyter:
+    build:
+      context: .
+      dockerfile: dockerfile-jupyter
+    container_name: crawler_jupyter
+    restart: always
+    ports:
+      - "9527:8888"
+      - "80:5000"
+      - "5001:5001"
+    volumes:
+      - ./material:/home/jovyan/work
+    command: start-notebook.sh --NotebookApp.token='howdoyouturnthison8888'
+    environment:
+      - "GRANT_SUDO: yes"
+
+  db:
+    image: mysql:5.7
+    container_name: crawler_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'PTTDB'
+      # So you don't have to use root, but you can if you like
+      MYSQL_USER: 'pttuser1'
+      # You can use whatever password you like
+      MYSQL_PASSWORD: 'howdoyouturnthison3306'
+      # Password for root access
+      MYSQL_ROOT_PASSWORD: 'root'
+    ports:
+      - '3307:3306'
+    expose:
+      # Opens port 3306 on the container
+      - '3307'
+      # Where our data will be persisted
+    volumes:
+      - ./mysql-dump:/docker-entrypoint-initdb.d
+      - ./my-db:/var/lib/mysql
+# Names the volume
+volumes:
+  my-db:

@@ -1,0 +1,17 @@
+FROM jupyter/base-notebook
+RUN pip install Flask==0.12
+RUN pip install requests
+RUN pip install bs4
+RUN pip install PyMySQL
+RUN pip install kafka-python
+RUN pip install pykafka
+RUN pip install pandas
+
+#USER root
+#RUN apt-get -y update
+#RUN apt-get -y dist-upgrade
+#RUN apt -y install mysql-server-5.7
+#RUN apt -y install mysql-community-server
+
+#USER jovyan
+#RUN pip install mysqlclient
