@@ -1,6 +1,6 @@
 CREATE DATABASE IF NOT EXISTS PTTDB;
 
-CREATE TABLE `PTTDB`.`PTT_ARTICLE` (
+CREATE TABLE IF NOT EXISTS `PTTDB`.`PTT_ARTICLE` (
   `title` VARCHAR(60) NOT NULL COMMENT '文章標題',
   `boardName` VARCHAR(40) COMMENT '看板名稱',
   `articleId` VARCHAR(45) NOT NULL COMMENT '文章編號',
@@ -27,3 +27,19 @@ ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COMMENT = 'Used to store comments in each article.';
 
+CREATE TABLE IF NOT EXISTS `PTTDB`.`PTT_ETL_LOG` (
+  `processId` VARCHAR(30) NOT NULL COMMENT 'boardName + date time',
+  `etlDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+  `etlStatus` VARCHAR(10) NOT NULL COMMENT '兩種狀態，start及end',
+  PRIMARY KEY (`processId`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COMMENT = 'Record the start time or the end time whenever the crawler program is running';
+
+CREATE TABLE IF NOT EXISTS `PTTDB`.`PTT_ETL_DETAIL_LOG` (
+  `processId` VARCHAR(30) NOT NULL COMMENT 'board_name + date time',
+  `etlStatus` VARCHAR(10) NOT NULL COMMENT '訊息狀態，info、warning、error',
+  `etlStatusMessage` VARCHAR(200) NOT NULL)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COMMENT = 'Record detail logs while crawler being executing';
