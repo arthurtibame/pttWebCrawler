@@ -18,10 +18,35 @@
 - 選擇欲爬取時間範圍
 - 點選「開始爬取」即進入爬蟲程序(該畫面請勿關閉)
 - 開始爬取時，點選下方「Log Monitor」可進入即時Log監控畫面
-首頁選填資料
+>首頁選填資料
 ![webindex](webindex.png "首頁選填資料")
-下拉選單選擇看板
+>下拉選單選擇看板
 ![boards](boards.png "下拉選單選擇看板")
+>開始爬取，下方Log Monitor可觀看即時Log
 ![crawling](crawling.png "開始爬取，下方Log Monitor可觀看即時Log")
+>爬取時不斷向Kafka consum log
 ![logmonitor](logmonitor.png "爬取時不斷向Kafka consum log")
 
+* * *
+
+# 爬取完成後
+## 1. 可看到該次爬取的資訊
+- Process ID
+- 爬取區間
+- 爬取目標
+- 爬取資料之表格
+>爬取結束的畫面
+![result](result.png "爬取結束的畫面")
+## 2. 爬取結束後可於資料庫查看資料(4個Tables)
+- PTTDB.PTT_ARTICLE
+- PTTDB.PTT_COMMENT
+- PTTDB.PTT_ETL_LOG
+- PTTDB.PTT_ETL_DETAIL_LOG
+>文章資訊及內容(PK 為 articleId)
+![pttarticle](pttarticle.png "PTTDB.PTT_ARTICLE")
+>文章留言(FK 為 articleId，可用來與 PTTDB.PTT_ARTICLE 進行 JOIN)
+![pttcomment](pttcomment.png "PTTDB.PTT_COMMENT")
+>爬蟲啟動結束之狀態(executing為執行中，end為結束)
+![pttetllog](pttetllog.png "PTTDB.PTT_ETL_LOG")
+>爬蟲過程詳細log，包含爬了哪些文章、遇到什麼問題、上傳資料庫或Kafka等
+![pttetldetaillog](pttetldetaillog.png "PTTDB.PTT_ETL_DETAIL_LOG")
