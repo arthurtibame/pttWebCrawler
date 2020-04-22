@@ -8,11 +8,16 @@
 #### 接著會看到以下畫面
 最下方的 Ngrok 內顯示的網址即為 WebUI 的位址<br>
 直接將該網址複製貼在瀏覽器即可
-![Alt text](start.png)
+![start](start.png)
+
 # 進入網頁畫面後的操作
 ## 1. 直接填選欲爬取資訊
 - 下拉式表單選擇欲爬取看板
 - 選擇欲爬取時間範圍
 - 點選「開始爬取」即進入爬蟲程序(該畫面請勿關閉)
 - 開始爬取時，點選下方「Log Monitor」可進入即時Log監控畫面
+![webindex](webindex.png "首頁選填資料")
+![boards](boards.png "下拉選單選擇看板")
+![crawling](crawling.png "開始爬取，下方Log Monitor可觀看即時Log")
+![logmonitor](logmonitor.png "爬取時不斷向Kafka consum log")
 
