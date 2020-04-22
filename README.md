@@ -1,6 +1,32 @@
 # 環境需求
 ## 須先安裝Git、Docker、Docker-compose
 
+# 其他訊息
+## 1. 主要程式放於 material/ 目錄內
+- pttCrawler.py (爬蟲主要程式)
+- connectDB.py (連接資料庫相關功能)
+- getBoards.py (獲取看板名稱及網址)
+## 2. 資料庫創建SQL放於 mysql-dump/ 目錄內，有四個Table
+- PTTDB.PTT_ARTICLE
+- PTTDB.PTT_COMMENT
+- PTTDB.PTT_ETL_LOG
+- PTTDB.PTT_ETL_DETAIL_LOG
+## 3. 資料庫帳號
+- user: pttuser1
+- passwd: howdoyouturnthison3306
+- host: localhost:3307
+## 4. WebUI 以 Python Flask 寫成，放於 material/ 目錄內
+- app.py
+- material/static/
+- material/templates/ 
+- host: localhost:5001
+## 5. Ngrok 服務
+- 用於讓別人訪問爬蟲的 WebUI
+- 產生一公開 DNS 使其他人可訪問自己的 localhost:5001
+## 6. 所有服務皆以 Docker 啟動
+- docker-compose 的 yml 檔及 dockerfile 檔案放於此GitHub的根目錄
+- 啟用服務有: Python3.7環境、Ngrok、MySQL、Kafka
+
 * * *
 
 # 啟動步驟
