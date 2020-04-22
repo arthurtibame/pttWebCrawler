@@ -12,9 +12,28 @@ services:
       - "5001:5001"
     volumes:
       - ./material:/home/jovyan/work
-    command: start-notebook.sh --NotebookApp.token='howdoyouturnthison8888'
+    command:
+      - /bin/bash
+      - -c
+      - | 
+        cd /home/jovyan/work
+        python app.py
+      - start-notebook.sh
+      - --NotebookApp.token='howdoyouturnthison8888'
     environment:
       - "GRANT_SUDO: yes"
+
+  pttcrawler_ngrok:
+    image: wernight/ngrok
+    container_name: pttcrawler_ngrok
+    depends_on:
+      - crawler_jupyter
+    restart: always
+    ports:
+      - "54088:4040"
+    links:
+      - crawler_jupyter:http
+    command: ngrok http crawler_jupyter:5001
 
   db:
     image: mysql:5.7

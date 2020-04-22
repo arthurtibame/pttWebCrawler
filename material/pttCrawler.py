@@ -45,7 +45,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleW
 cookies = {'over18': '1'}
 
 # The format of date should be like 2020/04/15
-def getArticlesInfo(board_url, start_date=start_date, end_date=end_date):
+def getArticlesInfo(board_url, process_id, start_date=start_date, end_date=end_date):
     all_articles = list()
     all_articles_index = 0
     one_page_articles = list()
@@ -54,7 +54,6 @@ def getArticlesInfo(board_url, start_date=start_date, end_date=end_date):
     exist_board_article_id = connectDB.getAllArticleIdInOneBoard(board_name)
     
     # Insert the status into PTT_ETL_LOG
-    process_id = board_name + str(int(time.time()))
     etl_dt = datetime_now.strftime("%Y-%m-%d %H:%M:%S")
     record_dt = datetime_now.strftime("%Y-%m-%d %H:%M:%S")
     crawled_range = """({},{})""".format(start_date, end_date)
@@ -449,7 +448,10 @@ def isBoardArticleIdInDb(article_id, board_name):
 
 if __name__ == '__main__':
     board_url = 'https://www.ptt.cc/bbs/Gossiping/index.html'
-    test_data = getArticlesInfo(board_url, start_date='2020/04/19', end_date='2020/04/21')
+    board_name = board_url.split('/')[-2]
+    process_id = board_name + str(int(time.time()))
+    print('Process ID:', process_id)
+    test_data = getArticlesInfo(board_url, start_date='2020/04/19', end_date='2020/04/21', process_id=process_id)
     insert_data = convertArticlesInfo(test_data)
     print(len(test_data))
     print(len(insert_data))

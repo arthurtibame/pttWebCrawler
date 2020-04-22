@@ -1,0 +1,32 @@
+.drop + input{
+    display: none;
+}
+
+.drop + input + div{
+     display:none;
+}
+
+.drop + input:checked + div{
+    display:block;
+}
+
+.function-describe{
+    color: red;
+}
+
+.function-describe-button{
+    background-color: #ffe6e6;
+}
+
+div{
+    margin:0px auto;
+    text-align:center;
+    vertical-align: middle;
+}
+
+div#loading {
+            width: 350px;
+            height: 350px;
+            display: none;
+            cursor: wait;
+        }

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>歡迎使用PTT爬蟲</title>
+    <link href="/static/mystyle3.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        function loading(){
+            $("#loading").show();
+            $("#content").hide(); 
+            $("#content2").hide();      
+        }
+    </script>
+</head>
+<body>
+    <div>
+        <div>
+            <h1>歡迎使用PTT爬蟲</h1>
+        </div>
+        <div>
+            <form action="/crawling">
+                
+                <div>
+                    <label>選擇看板：</label>
+                </div>
+                <div>
+                    <select name="board_url">
+                        {% for board in board_dict %}
+                            <option value="{{board_dict[board]['board_url']}}">
+                                {{board}} {{board_dict[board]['board_title']}}
+                            </option>
+                        {% endfor %}
+                    　...
+                    </select>
+                    <font size="1">
+                        <label class="drop function-describe-button" for="_1">點擊查看說明</label>
+                        <input type="checkbox" id="_1">
+                        <div class="function-describe">
+                            選擇欲爬取的看板名稱
+                            <br>
+                            選擇完畢後在下方選擇爬取區間
+                        </div>
+                    </font>
+                </div>
+                
+                <br>
+                
+                <div>
+                    <label>選擇區間：</label>
+                </div>
+                <div>
+                    <input type="date" name="start_date" required="required">
+                    ～
+                    <input type="date" name="end_date" required="required">
+                    <font size="1">
+                        <label class="drop function-describe-button" for="_2">點擊查看說明</label>
+                        <input type="checkbox" id="_2">
+                        <div class="function-describe">
+                            請選擇爬取區間
+                            <br>
+                            選擇後，不符合爬取區間之文章將不被儲存
+                        </div>
+                    </font>
+                </div>
+                
+                <br>
+                
+                <div>
+                    <div id="loading">
+                        爬取資料中......
+                        <img src="/static/loader.gif">
+                        <br>
+                        <a href="/log_monitor" target="_blank">Log Monitor</a>
+                    </div>
+                    <div id="content">
+                        <button type="submit" onclick="loading();">開始爬取</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <br><br>
+        <hr />
+
+        <div id="content2">
+            <div>
+               <h3>
+                    先前未完成且已中斷的程序：
+                </h3> 
+            </div>
+
+            <div>
+                點擊該下列 Process ID 即可繼續完成該程序
+            </div>
+            
+            <div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Process ID</th>
+                            <th>爬取範圍</th>
+                            <th>爬取看板</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(0, error_process_list|length) %}
+                        <tr>
+                            {% for d in error_process_list[i] %}
+                            <td>
+                                <a href="{{ error_process_url_list[i] }}" onclick="loading();">{{ d }}</a>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <br><br>
+            <hr />
+
+            <div>
+               <h3>
+                    歷史爬取紀錄：
+                </h3> 
+            </div>
+
+            <div>
+                點擊該下列 Process ID 可重新執行該程序
+            </div>
+            
+            <div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Process ID</th>
+                            <th>爬取範圍</th>
+                            <th>爬取看板</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(0, history_process_list|length) %}
+                        <tr>
+                            {% for d in history_process_list[i] %}
+                            <td>
+                                <a href="{{ history_process_url_list[i] }}" onclick="loading();">{{ d }}</a>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+        
+    </div>
+</body>
+</html>

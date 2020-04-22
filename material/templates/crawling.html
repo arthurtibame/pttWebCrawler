@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link href="/static/mystyle3.css" rel="stylesheet" type="text/css" />
+    <title>PTT DATA</title>
+</head>
+<body>
+    <div>
+        <div>
+            <h3>爬取完成</h3>
+        </div>
+        <div>
+        	<h4>目標看板： {{ board_name }}</h4>
+        	<h4>爬取範圍： {{ start_date }} ~ {{ end_date }}</h4>
+        	<h4>Process ID： {{ process_id }}</h4>
+        </div>
+        <div>
+        	<form action="/" target="_blank">
+        		<button type="submit">回首頁</button>
+        	</form>
+        </div>
+        <br>
+        <div>
+        	<div>
+        		<h4>爬取資料：</h4>
+        	</div>
+        	<div>
+        		<table>
+        			<thead>
+        				<tr>
+        					{% for c in show_column %}
+        					<th>
+        						{{ c }}
+        					</th>
+        					{% endfor %}
+        				</tr>
+        			</thead>
+        			<tbody>
+        				{% for i in range(0, show_data|length) %}
+        				<tr>
+        					{% for d in show_data[i] %}
+        					<td>
+        						<a href="{{ data_url[i] }}" target="_blank">
+        							{{ d }}
+        						</a>
+        					</td>
+        					{% endfor %}
+        				</tr>
+        				{% endfor %}
+        			</tbody>
+        		</table>
+        	</div>
+        </div>
+    </div>
+</body>
+</html>

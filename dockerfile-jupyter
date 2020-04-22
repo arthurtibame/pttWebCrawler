@@ -1,10 +1,10 @@
 FROM jupyter/base-notebook
-RUN pip install Flask==0.12
+RUN pip install Flask
 RUN pip install requests
 RUN pip install bs4
 RUN pip install PyMySQL
 RUN pip install kafka-python
-#RUN pip install pykafka
+RUN pip install pykafka
 RUN pip install pandas
 
 #USER root

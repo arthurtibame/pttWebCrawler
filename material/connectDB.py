@@ -202,3 +202,75 @@ def insertIntoPttEtlDetailLog(process_id, log_record_dt, etl_status, etlStatus_m
         cursor.close()
         conn.close()
     return effected_rows
+
+def getErrorProcess():
+    TABLE_NAME = 'PTT_ETL_LOG'
+    
+    COLUMNS_STR = """
+      `processId` VARCHAR(30) NOT NULL COMMENT 'boardName + date time',
+      `etlDT` DATETIME NOT NULL COMMENT '此程序開始執行的時間',
+      `recordDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+      `crawledRange` VARCHAR(30) NOT NULL COMMENT '此次爬取的時間範圍',
+      `etlStatus` VARCHAR(15) NOT NULL COMMENT '三種狀態，start、executing及end',"""
+    
+    COLUMNS_LIST = [r.strip(' ').replace('`', '').split(' ')[0] for r in COLUMNS_STR.split('\n') if r != '']
+    COLUMNS = ', '.join(COLUMNS_LIST)
+    
+    sql = """SELECT {}  
+            FROM {}
+            WHERE TIMESTAMPDIFF(MINUTE, recordDT, CURRENT_TIMESTAMP()) > 10
+            AND etlStatus = 'executing';""".format(COLUMNS, TABLE_NAME)
+    
+    try:
+        conn = pymysql.connect(**dbconf)
+        print('Successfully connected!')
+    except:
+        return 0
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        output = cursor.fetchall()
+    except:
+        return 0
+    finally:
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return [[d[0], d[3].replace('/', '-'), d[0][0:-10]] for d in output]
+
+def getHistoryProcess():
+    TABLE_NAME = 'PTT_ETL_LOG'
+    
+    COLUMNS_STR = """
+      `processId` VARCHAR(30) NOT NULL COMMENT 'boardName + date time',
+      `etlDT` DATETIME NOT NULL COMMENT '此程序開始執行的時間',
+      `recordDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+      `crawledRange` VARCHAR(30) NOT NULL COMMENT '此次爬取的時間範圍',
+      `etlStatus` VARCHAR(15) NOT NULL COMMENT '三種狀態，start、executing及end',"""
+    
+    COLUMNS_LIST = [r.strip(' ').replace('`', '').split(' ')[0] for r in COLUMNS_STR.split('\n') if r != '']
+    COLUMNS = ', '.join(COLUMNS_LIST)
+    
+    sql = """SELECT {}  
+            FROM {}
+            WHERE TIMESTAMPDIFF(MINUTE, recordDT, CURRENT_TIMESTAMP()) > 10
+            AND etlStatus = 'end';""".format(COLUMNS, TABLE_NAME)
+    
+    try:
+        conn = pymysql.connect(**dbconf)
+        print('Successfully connected!')
+    except:
+        return 0
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        output = cursor.fetchall()
+    except:
+        return 0
+    finally:
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return [[d[0], d[3].replace('/', '-'), d[0][0:-10]] for d in output]
