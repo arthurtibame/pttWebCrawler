@@ -10,6 +10,10 @@ insertIntoPttComment( input_data: List[List[str]] ) -> effected_rows: int
 getAllArticleId() -> List[str]
 
 getAllArticleIdInOneBoard( board_name: str ) -> List[str]
+
+insertIntoPttEtlLog( process_id: str, etl_dt: datetime, crawled_range: str, etlStatus: str ) -> bool
+
+insertIntoPttEtlDetailLog( process_id: str, crawled_range: str, etlStatus: str, etlStatusMessage: str ) -> bool
 '''
 import pymysql
 import json
@@ -128,3 +132,73 @@ def getAllArticleIdInOneBoard(board_name):
     cursor.close()
     conn.close()
     return articles_id
+
+def insertIntoPttEtlLog(process_id, etl_dt, record_dt, crawled_range, etl_status):
+    
+    TABLE_NAME = 'PTT_ETL_LOG'
+    
+    COLUMNS_STR = """
+      `processId` VARCHAR(30) NOT NULL COMMENT 'boardName + date time',
+      `etlDT` DATETIME NOT NULL COMMENT '此程序開始執行的時間',
+      `recordDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+      `crawledRange` VARCHAR(30) NOT NULL COMMENT '此次爬取的時間範圍',
+      `etlStatus` VARCHAR(15) NOT NULL COMMENT '三種狀態，start、executing及end',"""
+    
+    COLUMNS_LIST = [r.strip(' ').replace('`', '').split(' ')[0] for r in COLUMNS_STR.split('\n') if r != '']
+    COLUMNS = ', '.join(COLUMNS_LIST)
+    COLUMNS_FORMAT = ", ".join(['%s' for i in COLUMNS_LIST])
+    
+    sql = "INSERT INTO {} ({}) VALUES ({})".format(TABLE_NAME, COLUMNS, COLUMNS_FORMAT)
+    insert_data = [(process_id, etl_dt, record_dt, crawled_range, etl_status)]
+    
+    try:
+        conn = pymysql.connect(**dbconf)
+        print('Successfully connected!')
+    except:
+        return 0
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""DELETE FROM PTT_ETL_LOG WHERE processId = '{}';""".format(process_id))
+        effected_rows = cursor.executemany(sql, insert_data)
+    except:
+        return 0
+    finally:
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return effected_rows
+
+def insertIntoPttEtlDetailLog(process_id, log_record_dt, etl_status, etlStatus_message):
+    
+    TABLE_NAME = 'PTT_ETL_DETAIL_LOG'
+    
+    COLUMNS_STR = """
+    `processId` VARCHAR(30) NOT NULL COMMENT 'board_name + date time',
+     `logRecordDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+    `etlStatus` VARCHAR(10) NOT NULL COMMENT '訊息狀態，info、warning、error',
+    `etlStatusMessage` VARCHAR(200) NOT NULL)"""
+    
+    COLUMNS_LIST = [r.strip(' ').replace('`', '').split(' ')[0] for r in COLUMNS_STR.split('\n') if r != '']
+    COLUMNS = ', '.join(COLUMNS_LIST)
+    COLUMNS_FORMAT = ", ".join(['%s' for i in COLUMNS_LIST])
+    
+    sql = "INSERT INTO {} ({}) VALUES ({})".format(TABLE_NAME, COLUMNS, COLUMNS_FORMAT)
+    insert_data = [(process_id, log_record_dt, etl_status, etlStatus_message)]
+    
+    try:
+        conn = pymysql.connect(**dbconf)
+        print('Successfully connected!')
+    except:
+        return 0
+    
+    try:
+        cursor = conn.cursor()
+        effected_rows = cursor.executemany(sql, insert_data)
+    except:
+        return 0
+    finally:
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return effected_rows

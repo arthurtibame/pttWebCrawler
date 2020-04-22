@@ -22,12 +22,14 @@ isArticleIdInDb( article_id: str ) -> Bool
 
 '''
 
+from kafka import KafkaProducer, KafkaClient
 import requests
 from bs4 import BeautifulSoup
 import random
 import time
 import datetime
 import logging
+import json
 
 import connectDB
 
@@ -51,6 +53,14 @@ def getArticlesInfo(board_url, start_date=start_date, end_date=end_date):
     # Each id will be like Gossiping_M.1587040493.A.58B.html
     exist_board_article_id = connectDB.getAllArticleIdInOneBoard(board_name)
     
+    # Insert the status into PTT_ETL_LOG
+    process_id = board_name + str(int(time.time()))
+    etl_dt = datetime_now.strftime("%Y-%m-%d %H:%M:%S")
+    record_dt = datetime_now.strftime("%Y-%m-%d %H:%M:%S")
+    crawled_range = """({},{})""".format(start_date, end_date)
+    etl_status = 'start'
+    connectDB.insertIntoPttEtlLog(process_id, etl_dt, record_dt, crawled_range, etl_status)
+    
     start_date = datetime.datetime.strptime(start_date, '%Y/%m/%d')
     end_date = datetime.datetime.strptime(end_date, '%Y/%m/%d') + datetime.timedelta(days=1)
     print('start_date:', start_date)
@@ -63,25 +73,53 @@ def getArticlesInfo(board_url, start_date=start_date, end_date=end_date):
     
     last_page_url = 'https://www.ptt.cc'
     article_created_date = start_date
+    
+    # Insert the status into PTT_ETL_LOG
+    #process_id = board_name + str(int(time.time()))
+    #etl_dt = datetime_now.strftime("%Y-%m-%d %H:%M:%S")
+    record_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #crawled_range = """({},{})""".format(start_date, end_date)
+    etl_status = 'executing'
+    connectDB.insertIntoPttEtlLog(process_id, etl_dt, record_dt, crawled_range, etl_status)
+    # Produce detail log to Kafka and DB
+    etl_detail_status = 'INFO'
+    etlStatusMessage = f'Crawler target: {board_url}'
+    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
   
     # The date of which article was created should be greater than or equal to start_date
     while last_page_url != '' and article_created_date >= start_date:
         too_early_article_count = 0 # To count the article amount whose created date is earlier than start_date
+        
         # index1.html does not have 'href' key
         try:
             last_page_url = 'https://www.ptt.cc' + \
-                            soup.select('div[class="btn-group btn-group-paging"] a.btn')[1]['href']           
+                            soup.select('div[class="btn-group btn-group-paging"] a.btn')[1]['href']   
+            # Produce detail log to Kafka and DB
+            etl_detail_status = 'INFO'
+            etlStatusMessage = f'Get last page url: {last_page_url}'
+            produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
         except KeyError:
             last_page_url = ''
             article_created_date = start_date
-
+            # Produce detail log to Kafka and DB
+            etl_detail_status = 'WARN'
+            etlStatusMessage = f'No last page.'
+            produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
         titles_soup_list = soup.select('div.r-ent')
         for title_soup in titles_soup_list:
             try:
                 article_url = 'https://www.ptt.cc' + title_soup.select('div.title a')[0]['href']
+                # Produce detail log to Kafka and DB
+                etl_detail_status = 'INFO'
+                etlStatusMessage = f'Get article url: {article_url}'
+                produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
             except IndexError as e:
                 print(e.args)
                 print(title_soup)
+                # Produce detail log to Kafka and DB
+                etl_detail_status = 'WARN'
+                etlStatusMessage = '{}: {}'.format(e.args, title_soup)
+                produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                 continue
             article_title = title_soup.select('div.title a')[0].text
             print(article_title)
@@ -90,23 +128,65 @@ def getArticlesInfo(board_url, start_date=start_date, end_date=end_date):
             # If article id exists, pass
             if '_'.join(article_url.split('/')[-2:]) in exist_board_article_id:
                 print('Exists!')
+                # Produce detail log to Kafka and DB
+                etl_detail_status = 'INFO'
+                etlStatusMessage = f'Article already exists: {article_title}[{article_url}]'
+                produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
             else:
-                article_content = getContent(article_url)
+                get_article_content_reconnection = 0
+                while get_article_content_reconnection < 10:
+                    try:
+                        get_article_content_reconnection += 1
+                        article_content = getContent(article_url, process_id)
+                        # Produce detail log to Kafka and DB
+                        etl_detail_status = 'INFO'
+                        etlStatusMessage = f'Got article content: {article_title}[{article_url}]'
+                        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
+                        break
+                    except:
+                        # Produce detail log to Kafka and DB
+                        etl_detail_status = 'WARN'
+                        etlStatusMessage = f'Fail to got article content, retry {get_article_content_reconnection} time(s): {article_title}[{article_url}]'
+                        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
+                        time.sleep(random.randint(3,10))
+                if get_article_content_reconnection > 9:
+                    # Produce detail log to Kafka and DB
+                    etl_detail_status = 'ERROR'
+                    etlStatusMessage = f'Fail to got article content: {article_title}[{article_url}]'
+                    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
+                    continue
+                        
                 # If the article does not have 'date' infotmation, 
                 # refer the date in last article to set for this article
                 try:
                     article_created_date = article_content['date']
+                    # Produce detail log to Kafka and DB
+                    etl_detail_status = 'INFO'
+                    etlStatusMessage = f'Try to get article created datetime: {article_title}[{article_created_date}]'
+                    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                 except KeyError:
                     try:
                         article_content['date'] = all_articles[all_articles_index - 1]['date']
                         article_created_date = article_content['date']
+                        # Produce detail log to Kafka and DB
+                        etl_detail_status = 'WARN'
+                        etlStatusMessage = f'Article datetime not exist: {article_title}, set it to be as the last article {article_created_date}'
+                        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                     # If there is no date information in last article, set it to be end_date
                     except:
                         article_content['date'] = end_date
                         article_created_date = article_content['date']
+                        # Produce detail log to Kafka and DB
+                        etl_detail_status = 'WARN'
+                        etlStatusMessage = f'Article datetime not exist: {article_title}, set it to be end_date {end_date}'
+                        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                 if article_created_date < start_date:
                     print('article_created_date < start_date')
                     too_early_article_count += 1
+                    # Produce detail log to Kafka and DB
+                    etl_detail_status = 'INFO'
+                    etlStatusMessage = f'Article created date earlier than start_date: {article_title}[{article_created_date}]'
+                    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                     # Because there are some bottom articles that are not ordered by date, 
                     # maybe announcement or any other like that.
                     # The process will stop if it find out the first earlier-than-start-date-article
@@ -115,33 +195,75 @@ def getArticlesInfo(board_url, start_date=start_date, end_date=end_date):
                     if too_early_article_count > 20:
                         print('too_early_article_count > 20')
                         last_page_url = ''
+                        # Produce detail log to Kafka and DB
+                        etl_detail_status = 'WARN'
+                        etlStatusMessage = 'No more matched articles'
+                        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                         break
                 elif article_created_date > end_date:
                     print('article_created_date > end_date')
+                    # Produce detail log to Kafka and DB
+                    etl_detail_status = 'INFO'
+                    etlStatusMessage = f'Article created date later than end_date: {article_title}[{article_created_date}]'
+                    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                     pass
                 else:
                     all_articles.append(article_content)
                     one_page_articles.append(article_content)
                     print('Appended!')
+                    # Produce detail log to Kafka and DB
+                    etl_detail_status = 'INFO'
+                    etlStatusMessage = f'Article matched: {article_title}[{article_created_date}]'
+                    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
                 time.sleep(random.randint(1, 100) / 50)
         
-        # Insert one page data into the two tables, PTT_ARTICLE and PTT_COMMENT
+        ## Insert one page data into the two tables, PTT_ARTICLE and PTT_COMMENT
         insert_data = convertArticlesInfo(one_page_articles)
         connectDB.insertIntoPttArticle(insert_data)
+        # Produce detail log to Kafka and DB
+        etl_detail_status = 'INFO'
+        etlStatusMessage = f'Articles content insert into PttArticle: {article_title}[{article_created_date}]'
+        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
         insert_data = convertCommentsContent(one_page_articles)
         connectDB.insertIntoPttComment(insert_data)
+        # Produce detail log to Kafka and DB
+        etl_detail_status = 'INFO'
+        etlStatusMessage = f'Articles comment content insert into PttComment: {article_title}[{article_created_date}]'
+        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
         one_page_articles = list()
                 
         print('last_page_url:', last_page_url)
-        if last_page_url == '': break
+        if last_page_url == '': 
+            # Produce detail log to Kafka and DB
+            etl_detail_status = 'INFO'
+            etlStatusMessage = 'Completed: no more pages'
+            produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
+            break
         
         # Get into the last page
         res = ss.get(last_page_url, headers=headers)
         soup = BeautifulSoup(res.text, 'html.parser')
+        
+        # Produce detail log to Kafka and DB
+        etl_detail_status = 'INFO'
+        etlStatusMessage = f'Crawler target: {last_page_url}'
+        produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
+    
+    # Insert the status into PTT_ETL_LOG
+    #process_id = board_name + int(time.time())
+    #etl_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    record_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #crawled_range = """({},{})""".format(start_date, end_date)
+    etl_status = 'end'
+    connectDB.insertIntoPttEtlLog(process_id, etl_dt, record_dt, crawled_range, etl_status)
+    # Produce detail log to Kafka and DB
+    etl_detail_status = 'INFO'
+    etlStatusMessage = 'Crawler successfully executed!'
+    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
 
     return all_articles
 
-def getContent(article_url):
+def getContent(article_url, process_id):
     article_content = dict()
     
     article_content['article_url'] = article_url
@@ -151,10 +273,18 @@ def getContent(article_url):
     while True:
         try:
             res = ss.get(article_url, headers=headers)
+            # Produce detail log to Kafka and DB
+            etl_detail_status = 'INFO'
+            etlStatusMessage = f'Crawler target: {article_url}'
+            produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
             break
         except:
             print('Connection refused by server!')
             print('Reconnecting!')
+            # Produce detail log to Kafka and DB
+            etl_detail_status = 'WARN'
+            etlStatusMessage = f'Reconnect {reconnection_time+1} time(s): {article_url}'
+            produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
             time.sleep(random.randint(10, 20))
             reconnection_time += 1
             continue
@@ -206,6 +336,10 @@ def getContent(article_url):
                 if comment_key == 'push-ipdatetime': # Reset tmp_dict()
                     article_content['comment_content'].append(tmp_dict)
                     tmp_dict = dict()
+    # Produce detail log to Kafka and DB
+    etl_detail_status = 'INFO'
+    etlStatusMessage = f'Got article content: {article_url}'
+    produceLogToKafkaAndDb(process_id=process_id, etl_status=etl_detail_status, etl_status_message=etlStatusMessage)
     
     return article_content
 
@@ -267,6 +401,46 @@ def convertCommentsContent(all_articles):
             pass
     return insertData
 
+def produceLogToKafkaAndDb(process_id, etl_status, etl_status_message):
+    '''
+    key: process_id
+    value: etl_status|log_record_dt|etlStatusMessage
+           WARNING|2020-04-20 21:19:53|Hello world
+    '''
+    # Load the configuration of Kafka
+    with open('./kafka_producer.conf', 'r', encoding='utf-8') as f:
+        kafkaconf = json.loads(f.read())
+        
+    # New a Kafka producer instance, then set up the configuration for Kafka connection
+    producer = KafkaProducer(
+        # Kafka cluster
+        bootstrap_servers=kafkaconf['bootstrap_servers'],
+        key_serializer=str.encode,
+        value_serializer=str.encode
+    )
+    
+    log_record_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Topic name
+    topic_name = kafkaconf['topic']
+    key = process_id
+    value = f'{etl_status}|{log_record_dt}|{etl_status_message}'
+    
+    # Produce log to Kafka
+    try:
+        producer.send(topic=topic_name, key=key, value=value)
+        print('KAFKA PRODUCED')
+    except:
+        print('KAFKA PASS')
+        pass
+    finally:
+        producer.close()
+    
+    # Insert log into DB
+    connectDB.insertIntoPttEtlDetailLog(process_id, log_record_dt, etl_status, etl_status_message)
+    
+    return 1
+
 def isArticleIdInDb(article_id):
     pass
 
@@ -275,7 +449,7 @@ def isBoardArticleIdInDb(article_id, board_name):
 
 if __name__ == '__main__':
     board_url = 'https://www.ptt.cc/bbs/Gossiping/index.html'
-    test_data = getArticlesInfo(board_url, start_date='2020/4/19')
+    test_data = getArticlesInfo(board_url, start_date='2020/04/19', end_date='2020/04/21')
     insert_data = convertArticlesInfo(test_data)
     print(len(test_data))
     print(len(insert_data))

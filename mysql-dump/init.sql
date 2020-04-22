@@ -29,8 +29,10 @@ COMMENT = 'Used to store comments in each article.';
 
 CREATE TABLE IF NOT EXISTS `PTTDB`.`PTT_ETL_LOG` (
   `processId` VARCHAR(30) NOT NULL COMMENT 'boardName + date time',
-  `etlDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
-  `etlStatus` VARCHAR(10) NOT NULL COMMENT '兩種狀態，start及end',
+  `etlDT` DATETIME NOT NULL COMMENT '此程序開始執行的時間',
+  `recordDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+  `crawledRange` VARCHAR(30) NOT NULL COMMENT '此次爬取的時間範圍',
+  `etlStatus` VARCHAR(15) NOT NULL COMMENT '三種狀態，start、executing及end',
   PRIMARY KEY (`processId`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
@@ -38,8 +40,9 @@ COMMENT = 'Record the start time or the end time whenever the crawler program is
 
 CREATE TABLE IF NOT EXISTS `PTTDB`.`PTT_ETL_DETAIL_LOG` (
   `processId` VARCHAR(30) NOT NULL COMMENT 'board_name + date time',
-  `etlStatus` VARCHAR(10) NOT NULL COMMENT '訊息狀態，info、warning、error',
-  `etlStatusMessage` VARCHAR(200) NOT NULL)
+  `logRecordDT` DATETIME NOT NULL COMMENT '此資訊被記錄的時間',
+  `etlStatus` VARCHAR(10) NOT NULL COMMENT '訊息狀態，INFO、WARN、ERROR',
+  `etlStatusMessage` VARCHAR(3000) NOT NULL)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COMMENT = 'Record detail logs while crawler being executing';
