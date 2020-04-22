@@ -9,7 +9,7 @@
 ## 2. 進入程式所在目錄
 `cd pttWebCrawler`
 ## 3. 啟動爬蟲網頁伺服器
->第一次開啟需要較長時間
+第一次開啟需要較長時間
 `sh start.sh`
 #### 接著會看到以下畫面
 >最下方的 Ngrok 內顯示的網址即為 WebUI 的位址<br>
@@ -33,10 +33,10 @@
 >爬取時不斷向Kafka consum log
 ![logmonitor](logmonitor.png "爬取時不斷向Kafka consum log")
 ## 2. 若爬蟲程式意外停止，重開後可選擇繼續執行
->爬蟲程式開始執行後，PTTDB.PTT_ETL_LOG中會出現一筆statusId為executing的資料
->若此資料的紀錄時間與現在時間相隔超過15分鐘，則判定為異常
->網頁中「先前未完成且已中斷的程序」處會出現該程序的相關資料，如下圖
->直接點選即可繼續將為爬取資料爬完
+>爬蟲程式開始執行後，PTTDB.PTT_ETL_LOG中會出現一筆statusId為executing的資料，
+>若此資料的紀錄時間與現在時間相隔超過15分鐘，則判定為異常，
+>網頁中「先前未完成且已中斷的程序」處會出現該程序的相關資料，如下圖，
+>直接點選即可繼續將為爬取資料爬完，
 >執行完畢後，PTTDB.PTT_ETL_LOG中該筆資料的statusId將變為end
 ![errorprocess](errorprocess.png)
 ![errorprocessdb](errorprocessdb.png)
