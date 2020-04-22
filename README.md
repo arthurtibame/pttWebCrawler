@@ -6,4 +6,6 @@
 ## 3. 啟動爬蟲網頁伺服器
 `sh start.sh`
 #### 接著會看到以下畫面
+最下方的 Ngrok 內顯示的網址即為 WebUI 的位址<br>
+直接將該網址複製貼在瀏覽器即可
 ![Alt text](start.png)
