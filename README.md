@@ -1,3 +1,8 @@
+# 環境需求
+## 須先安裝Git、Docker、Docker-compose
+
+* * *
+
 # 啟動步驟
 ## 1. 於終端機輸入指令下載檔案
 `git clone https://github.com/uuboyscy/pttWebCrawler.git`
@@ -26,6 +31,7 @@
 ![crawling](crawling.png "開始爬取，下方Log Monitor可觀看即時Log")
 >爬取時不斷向Kafka consum log
 ![logmonitor](logmonitor.png "爬取時不斷向Kafka consum log")
+## 2. 若爬蟲程式意外停止，例如主機當機
 
 * * *
 
@@ -50,3 +56,11 @@
 ![pttetllog](pttetllog.png "PTTDB.PTT_ETL_LOG")
 >爬蟲過程詳細log，包含爬了哪些文章、遇到什麼問題、上傳資料庫或Kafka等
 ![pttetldetaillog](pttetldetaillog.png "PTTDB.PTT_ETL_DETAIL_LOG")
+
+* * *
+
+# 關閉程式
+## 1. 於終端機輸入指令
+`sh stop.sh`
+#### 接著會看到以下畫面
+![stop](stop.png)
