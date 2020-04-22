@@ -31,7 +31,14 @@
 ![crawling](crawling.png "開始爬取，下方Log Monitor可觀看即時Log")
 >爬取時不斷向Kafka consum log
 ![logmonitor](logmonitor.png "爬取時不斷向Kafka consum log")
-## 2. 若爬蟲程式意外停止，例如主機當機
+## 2. 若爬蟲程式意外停止，重開後可選擇繼續執行
+>爬蟲程式開始執行後，PTTDB.PTT_ETL_LOG中會出現一筆statusId為executing的資料
+>若此資料的紀錄時間與現在時間相隔超過15分鐘，則判定為異常
+>網頁中「先前未完成且已中斷的程序」處會出現該程序的相關資料，如下圖
+>直接點選即可繼續將為爬取資料爬完
+>執行完畢後，PTTDB.PTT_ETL_LOG中該筆資料的statusId將變為end
+![errorprocess](errorprocess.png)
+![errorprocessdb](errorprocessdb.png)
 
 * * *
 
@@ -52,9 +59,9 @@
 ![pttarticle](pttarticle.png "PTTDB.PTT_ARTICLE")
 >文章留言(FK 為 articleId，可用來與 PTTDB.PTT_ARTICLE 進行 JOIN)
 ![pttcomment](pttcomment.png "PTTDB.PTT_COMMENT")
->爬蟲啟動結束之狀態(executing為執行中，end為結束)
+>爬蟲啟動結束之狀態(PK 為 processId。executing為執行中，end為結束)
 ![pttetllog](pttetllog.png "PTTDB.PTT_ETL_LOG")
->爬蟲過程詳細log，包含爬了哪些文章、遇到什麼問題、上傳資料庫或Kafka等
+>爬蟲過程詳細log，包含爬了哪些文章、遇到什麼問題、上傳資料庫或Kafka等(FK 為 processId，可與 PTTDB.PTT_ETL_LOG 進行 JOIN)
 ![pttetldetaillog](pttetldetaillog.png "PTTDB.PTT_ETL_DETAIL_LOG")
 
 * * *
@@ -64,3 +71,5 @@
 `sh stop.sh`
 #### 接著會看到以下畫面
 ![stop](stop.png)
+
+* * *
